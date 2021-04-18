@@ -1,0 +1,8 @@
+[submodule "SubModules/NP.Utilities"]
+	path = SubModules/NP.Utilities
+	url = https://github.com/npolyak/NP.Utilities.git
+	branch = master
+[submodule "SubModules/NP.Concepts"]
+	path = SubModules/NP.Concepts
+	url = https://github.com/npolyak/NP.Concepts.git
+	branch = master
