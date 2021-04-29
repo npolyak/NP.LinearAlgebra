@@ -6,3 +6,7 @@
 /MainTest/bin/Debug/netcoreapp3.1
 /MainTest/obj
 *.suo
+*.v2
+/MainTest/bin/Debug/net5.0
+/NP.LinearAlgebra/bin/Debug/net5.0
+/NP.LinearAlgebra/obj/Debug/net5.0

@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NP.Utilities", "SubModules\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NP.Concepts", "SubModules\NP.Concepts\NP.Concepts.csproj", "{ED046CA0-BE5A-4050-AFEB-5BF83FCA7328}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NP.LinearAlgebra", "NP.LinearAlgebra\NP.LinearAlgebra.csproj", "{110C1023-D1AD-49A3-82FE-5BF1AD6CAF4D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,10 @@ Global
 		{ED046CA0-BE5A-4050-AFEB-5BF83FCA7328}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED046CA0-BE5A-4050-AFEB-5BF83FCA7328}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED046CA0-BE5A-4050-AFEB-5BF83FCA7328}.Release|Any CPU.Build.0 = Release|Any CPU
+		{110C1023-D1AD-49A3-82FE-5BF1AD6CAF4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{110C1023-D1AD-49A3-82FE-5BF1AD6CAF4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{110C1023-D1AD-49A3-82FE-5BF1AD6CAF4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{110C1023-D1AD-49A3-82FE-5BF1AD6CAF4D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
