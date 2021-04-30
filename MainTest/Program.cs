@@ -45,10 +45,12 @@ Range r = 2..3;
 
 ////Console.WriteLine(tensor.ToString());
 
-Tensor<int> tensor1 = THelper.Arange(0, 30);
+Tensor<double> tensor1 = THelper.Arange(0, 30).Cast<int, double>();
+Tensor<double> tensor2 = THelper.Arange(0, 30).Cast<int, double>() * 10;
 
 tensor1 = tensor1.Reshape(2, 3, 5);
+tensor2 = tensor2.Reshape(2, 3, 5);
 
-var t2 = (tensor1 + tensor1).Cast<double, int>();//.Convert<double, int>(d => (int) d);
+tensor1 += tensor2;
 
-Console.WriteLine(t2.ToFullStr());
+Console.WriteLine(tensor1.ToFullStr());
