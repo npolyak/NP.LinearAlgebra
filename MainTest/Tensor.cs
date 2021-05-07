@@ -1,269 +1,175 @@
 ﻿using NP.Utilities;
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace MainTest
 {
-
-    public class Tensor<T>
+    public class SubTensorIter<T> : IEnumerator<Tensor<T>>
     {
-        private TensorImpl<T> Impl { get; }
+        private Tensor<T> ParentTensor { get; }
 
-        private int FullOffset { get; set; }
+        public int Level => ParentTensor.Level + 1;
 
-        internal Span<T> TheSpan => TheBaseSpan.Slice(FullOffset, ChunkSize);
+        int _currentIdx;
 
-        private Span<T> TheBaseSpan => Impl._array;
+        public int CurrentIdx => _currentIdx;
 
-        public int Len { get; init; }
+        public int ChunkSize => ParentTensor.SubTensorChunkSize;
 
-        private int DimensionOffset
+        public Tensor<T> Current { get; private set; }
+
+        object IEnumerator.Current => Current;
+
+        public SubTensorIter(Tensor<T> parentTensor)
         {
-            get; set;
+            ParentTensor = parentTensor;
+
+            Reset();
         }
 
-        public Span<int> BaseShapeDimensions =>
-            Impl.ShapeDimensions;
-
-        public Span<int> ShapeDimensions =>
-            BaseShapeDimensions.Slice(DimensionOffset);
-
-        public Span<int> BaseShapeDimensionSizes =>
-            Impl.ShapeDimensionSizes;
-
-        public Span<int> ShapeDimensionSizes =>
-           BaseShapeDimensionSizes.Slice(DimensionOffset);
-
-        public int NumberDimensions => ShapeDimensions.Length;
-
-        public int TotalNumberDimensions => BaseShapeDimensions.Length;
-
-        public int NumberOfItemsInDimension => ShapeDimensions[0];
-        public int ChunkSize => ShapeDimensionSizes[0];
-
-        public Tensor(IEnumerable<T> collection, IEnumerable<int> dimensions = null)
+        public void Dispose()
         {
-            Impl = new TensorImpl<T>(collection, dimensions);
         }
 
-        public Tensor(T val, IEnumerable<int> dimensions)
+        public bool MoveNext()
         {
-            Impl = new TensorImpl<T>(val, dimensions);
-        }
-
-        private Tensor(TensorImpl<T> impl)
-        {
-            Impl = impl;
-        }
-
-        public Tensor(Tensor<T> t) : this(t.Impl)
-        {
-
-        }
-
-        public Tensor(IEnumerable<int> dimensions) : this(new TensorImpl<T>(dimensions))
-        {
-
-        }
-
-
-        public void CheckLen(int len)
-        {
-            this.ShapeDimensions.ToArray().CheckShape(len);
-        }
-
-        public void SetSpan(Span<T> span)
-        {
-            this.CheckLen(span.Length);
-
-            span.CopyTo(TheSpan);
-        }
-
-        public void CheckEqualDimensions(Span<int> shapeDimensions)
-        {
-            if (!ShapeDimensions.EqualSpans(shapeDimensions))
+            int newIdx;
+            if (_currentIdx < 0)
             {
-                throw new Exception($"Shape dimensions '{this.ShapeDimensions.ToStr()}' are not the same as '{shapeDimensions.ToStr()}'");
-            }
-        }
-
-        public void CheckEqualDimensions<TIn>(Tensor<TIn> tensor)
-        {
-            CheckEqualDimensions(tensor.ShapeDimensions);
-        }
-
-        public Tensor<T> Reshape(params int[] shapeDimentions)
-        {
-            return new Tensor<T>(new TensorImpl<T>(this.Impl, shapeDimentions));
-        }
-
-        public T this[int i] => TheSpan[i];
-
-        public T Get(params int[] idxes)
-        {
-            int dimLen = NumberDimensions;
-
-            if (idxes.Length != dimLen)
-            {
-                throw new Exception($"Programming Error:, length of passed index is {idxes.Length}, but should be {dimLen}");
-            }
-
-            int totalIdx = 0;
-            for (int i = 0; i < dimLen; i++)
-            {
-                int currentIdx = idxes[i];
-
-                if (currentIdx >= ShapeDimensions[i])
-                {
-                    throw new Exception($"Programming Error: index for dimension {i} is {idxes[i]} - greater or equal than the corresponding dimension size - {ShapeDimensions[i]}.");
-                }
-
-                int currentDimensionSize = ShapeDimensionSizes[i + 1];
-
-                totalIdx += currentIdx * currentDimensionSize;
-            }
-
-            return TheSpan[totalIdx];
-        }
-
-        private bool IsInt =>
-            typeof(T) == typeof(int);
-
-        private string PrintFormat =>
-            IsInt ? "{0:#}" : "{0:#.0000}";
-
-        private bool IsNextToBottom =>
-            DimensionOffset == BaseShapeDimensions.Length - 1;
-
-        private bool IsBottom =>
-            DimensionOffset == BaseShapeDimensions.Length;
-
-        public IList<Tensor<T>> GetSubTensors()
-        {
-            List<Tensor<T>> result = new List<Tensor<T>>();
-
-            int nextDimensionOffset = DimensionOffset + 1;
-
-            for (int i = 0; i < NumberOfItemsInDimension; i++)
-            {
-                Tensor<T> t = new Tensor<T>(this.Impl);
-                t.DimensionOffset = nextDimensionOffset;
-
-                t.FullOffset = i * t.ChunkSize + this.FullOffset;
-
-                result.Add(t);
-            }
-
-            return result;
-        }
-
-        public string ToFullStr(string format = null)
-        {
-            if (format == null)
-            {
-                format = PrintFormat;
-            }
-
-            if (IsBottom)
-            {
-                return string.Format(format, this.TheSpan[0]);
-            }
-
-            string separator = null;
-
-            if (IsNextToBottom)
-            {
-                separator = ", ";
+                newIdx = 0;
             }
             else
             {
-                separator = new string('\n', TotalNumberDimensions - DimensionOffset - 1);
+                newIdx = _currentIdx + 1;
             }
 
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append('[');
-            bool isFirstIteration = true;
-            int shift = DimensionOffset + 1;
-
-            foreach (Tensor<T> subTensor in GetSubTensors())
+            if (newIdx >= ParentTensor.NumberSubTensors)
             {
-                if (!isFirstIteration)
-                {
-                    stringBuilder.Append(separator);
+                return false;
+            }
 
-                    if (shift > 0 && (!IsNextToBottom))
-                    {
-                        stringBuilder.Append(' ', shift);
-                    }
+            _currentIdx = newIdx;
+
+            Current = new Tensor<T>(ParentTensor, Level, ParentTensor.StartOffset + _currentIdx * ChunkSize);
+
+            return true;
+        }
+
+        public void Reset()
+        {
+            Current = null;
+            _currentIdx = -1;
+        }
+    }
+
+    public class Tensor<T> : IEnumerable<Tensor<T>>
+    {
+        private TensorData<T> TheTensorData { get; }
+
+        public Permutation TheDimensionPermutation
+        {
+            get => TheTensorData.TheDimensionsPermutations;
+
+            set => TheTensorData.TheDimensionsPermutations = value;
+        }
+
+        private T[] TheArray => TheTensorData.TheArray;
+
+        int _level = 0;
+        public int Level 
+        { 
+            get => _level;
+            private set
+            {
+                if (_level == value)
+                    return;
+
+                if (value >= TheTensorData.TotalSpaceDimensions.Length)
+                {
+                    throw new ProgrammingError($"Iteration Level cannot be equal or exceed the number of tensor dimensions");
                 }
 
-                stringBuilder.Append(subTensor.ToFullStr(format));
-
-                isFirstIteration = false;
+                _level = value;
             }
-            stringBuilder.Append(']');
-
-            return stringBuilder.ToString();
         }
 
-        public static Tensor<double> operator +(Tensor<T> t1, Tensor<T> t2)
+        public int RemainingDepth => TheTensorData.TotalSpaceDimensions.Length - Level;
+
+        public T TensorStartValue => TheArray[StartOffset];
+
+        public int StartOffset { get; private set; }
+
+        public Span<int> SpaceDimensions => TheTensorData.TotalSpaceDimensions.AsSpan().Slice(Level);
+
+        public Span<int> SpaceDimensionSizes => TheTensorData.TotalShapeDimensionChunkSizes.AsSpan().Slice(Level);
+
+        public int NumberSubTensors => SpaceDimensions[0];
+
+        public int SubTensorChunkSize => SpaceDimensionSizes[0];
+
+        // total length of the sub-collection in array cells
+        public int CurrentTensorCellLength => NumberSubTensors * SubTensorChunkSize;
+        
+        /// <summary>
+        /// offset within the array that is a non-including end boundary within the sub-collection
+        /// </summary>
+        public int EndOffset => StartOffset + CurrentTensorCellLength;
+
+        public Tensor(IEnumerable<T> collection, IEnumerable<int> dimensions = null, int level = 0, int start = 0)
         {
-            return t1.DoDoubleCellByCell(t2, (item1, item2) => item1 + item2);
+            TheTensorData = new TensorData<T>(collection, dimensions);
+
+            Level = level;
+            StartOffset = start;
         }
 
-
-        public static Tensor<double> operator +(Tensor<T> t1, double scalar)
+        public Tensor(T val, IEnumerable<int> dimensions, int level = 0, int start = 0)
         {
-            return t1.DoDoubleScalarCellByCell(scalar, (item1, item2) => item1 + item2);
+            TheTensorData = new TensorData<T>(val, dimensions);
+
+            Level = level;
+            StartOffset = start;
         }
 
-
-        public static Tensor<double> operator *(Tensor<T> t1, Tensor<T> t2)
+        internal Tensor(TensorData<T> tensorData, int level = 0, int start = 0)
         {
-            return t1.DoDoubleCellByCell(t2, (item1, item2) => item1 * item2);
+            TheTensorData = tensorData;
+
+            Level = level;
+            StartOffset = start;
         }
 
-
-        public static Tensor<double> operator *(Tensor<T> t1, double scalar)
+        public Tensor(Tensor<T> t, int level = 0, int start = 0) : this(t.TheTensorData, level, start)
         {
-            return t1.DoDoubleScalarCellByCell(scalar, (item1, item2) => item1 * item2);
+
         }
 
-
-
-        public static Tensor<double> operator -(Tensor<T> t1, Tensor<T> t2)
+        public Tensor(IEnumerable<int> dimensions, int level = 0, int start = 0) : this(new TensorData<T>(dimensions), level, start)
         {
-            return t1.DoDoubleCellByCell(t2, (item1, item2) => item1 - item2);
+
         }
 
-
-        public static Tensor<double> operator -(Tensor<T> t1, double scalar)
+        public Tensor<T> Reshape(params int[] shapeDimensions)
         {
-            return t1.DoDoubleScalarCellByCell(scalar, (item1, item2) => item1 - item2);
+            TensorData<T> tensorData = new TensorData<T>(this.TheTensorData, shapeDimensions);
+
+            return new Tensor<T>(tensorData);
         }
 
-
-        public static Tensor<double> operator /(Tensor<T> t1, Tensor<T> t2)
+        private SubTensorIter<T>  GetSubTensorIter()
         {
-            return t1.DoDoubleCellByCell(t2, (item1, item2) => item1 / item2);
+            return new SubTensorIter<T>(this);
         }
 
-
-        public static Tensor<double> operator /(Tensor<T> t1, double scalar)
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            return t1.DoDoubleScalarCellByCell(scalar, (item1, item2) => item1 / item2);
+            return GetSubTensorIter();
         }
 
-        public static Tensor<int> operator %(Tensor<T> t1, Tensor<T> t2)
+        IEnumerator<Tensor<T>> IEnumerable<Tensor<T>>.GetEnumerator()
         {
-            return t1.DoIntCellByCell(t2, (item1, item2) => item1 % item2);
-        }
-
-        public static Tensor<int> operator %(Tensor<T> t1, int module)
-        {
-            return t1.DoIntScalarCellByCell(module, (item1, item2) => item1 % item2);
+            return GetSubTensorIter();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NP.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,7 +15,7 @@ namespace MainTest
         }
 
         public static int TotalSize(this IEnumerable<int> dimensions) =>
-            dimensions.Where(DimensionCondition).Aggregate(1, (totalLen, d) => totalLen * d);
+            dimensions.Where(DimensionCondition).Prod();
 
         public static void CheckShape(this IEnumerable<int> dimensions, int arrayLenth)
         {
@@ -25,7 +26,5 @@ namespace MainTest
                 throw new Exception($"ERROR: dimensions {dimensions.DimensionsToStr()} do not match the length {arrayLenth} of the array");
             }
         }
-
-
     }
 }

@@ -8,6 +8,8 @@ namespace MainTest
     {
         internal T[] _array;
 
+        public T[] TheArray => _array;
+
         public int Len => _array?.Length ?? 0;
 
         public int NumberDimensions => ShapeDimensions.Length;
@@ -29,17 +31,15 @@ namespace MainTest
                 }
                 else
                 {
-                    ShapeDimensionSizes = new int[NumberDimensions + 1];
+                    ShapeDimensionSizes = new int[NumberDimensions];
 
                     int currentDimSize = 1;
                     for (int i = NumberDimensions - 1; i >= 0; i--)
                     {
-                        ShapeDimensionSizes[i + 1] = currentDimSize;
+                        ShapeDimensionSizes[i] = currentDimSize;
 
                         currentDimSize *= ShapeDimensions[i];
                     }
-
-                    ShapeDimensionSizes[0] = currentDimSize;
                 }
             }
         }
@@ -91,6 +91,20 @@ namespace MainTest
         private void CheckShapes()
         {
             this.CheckLen(Len);
+        }
+
+        public TensorImpl<TOut> DeepCopy<TOut>(Func<T, TOut> converter)
+        {
+            TOut[] array = new TOut[this._array.Length];
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                array[i] = converter(_array[i]);
+            }
+
+            TensorImpl<TOut> result = new TensorImpl<TOut>(array, this.ShapeDimensions);
+
+            return result;
         }
     }
 
